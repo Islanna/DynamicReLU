@@ -1,9 +1,7 @@
 import torch
-from torch import nn
-
+import torch.nn as nn
 
 class DyReLU(nn.Module):
-
     def __init__(self, channels, reduction=4, k=2, conv_type='2d'):
         super(DyReLU, self).__init__()
         self.channels = channels
@@ -19,7 +17,7 @@ class DyReLU(nn.Module):
         self.register_buffer('lambdas', torch.Tensor([1.]*k + [0.5]*k).float())
         self.register_buffer('init_v', torch.Tensor([1.] + [0.]*(2*k - 1)).float())
 
-    def get_theta(self, x):
+    def get_relu_coefs(self, x):
         theta = torch.mean(x, axis=-1)
         if self.conv_type == '2d':
             theta = torch.mean(theta, axis=-1)
@@ -40,7 +38,7 @@ class DyReLUA(DyReLU):
 
     def forward(self, x):
         assert x.shape[1] == self.channels
-        theta = self.get_theta(x)
+        theta = self.get_relu_coefs(x)
 
         relu_coefs = theta.view(-1, 2*self.k) * self.lambdas + self.init_v
         # BxCxL -> LxCxBx1
@@ -59,7 +57,7 @@ class DyReLUB(DyReLU):
 
     def forward(self, x):
         assert x.shape[1] == self.channels
-        theta = self.get_theta(x)
+        theta = self.get_relu_coefs(x)
 
         relu_coefs = theta.view(-1, self.channels, 2*self.k) * self.lambdas + self.init_v
 
